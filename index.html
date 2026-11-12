@@ -1,0 +1,179 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0d1024">
+<meta name="description" content="Corrida das Cores: corrida de cavalos para jogar com os amigos no mesmo aparelho. Chicoteie na hora certa, pule os obstáculos e aposte no seu cavalo.">
+<title>Corrida das Cores</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230d1024'/%3E%3Crect x='8' y='14' width='48' height='8' rx='4' fill='%23ff4d5e'/%3E%3Crect x='8' y='26' width='40' height='8' rx='4' fill='%233d8bff'/%3E%3Crect x='8' y='38' width='30' height='8' rx='4' fill='%232fd27a'/%3E%3Crect x='8' y='50' width='20' height='6' rx='3' fill='%23ffd23f'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bungee&family=Nunito:wght@500;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<canvas id="bg" aria-hidden="true"></canvas>
+
+<div id="app">
+  <!-- barra superior -->
+  <header class="topbar">
+    <button class="brand" id="home-btn" title="Voltar ao início"><span class="logo-stripes"><i></i><i></i><i></i><i></i></span><span>Corrida das Cores</span></button>
+    <div class="top-actions">
+      <span class="chip" id="round-chip" hidden></span>
+      <button class="icon-btn" id="sound-btn" title="Som (M)" aria-label="Ligar ou desligar o som">🔊</button>
+      <button class="icon-btn" id="voice-btn" title="Narrador por voz" aria-label="Ligar ou desligar o narrador por voz">🎙️</button>
+      <button class="icon-btn" id="help-btn" title="Como jogar" aria-label="Como jogar">?</button>
+    </div>
+  </header>
+
+  <!-- MENU -->
+  <section class="screen" id="s-menu">
+    <div class="hero">
+      <div class="hero-tag">jogo de festa · 2 a 6 cavalos · mesmo aparelho</div>
+      <h1 class="title"><span>Corrida</span><span>das Cores</span></h1>
+      <div class="stripe big"><i></i><i></i><i></i><i></i><i></i><i></i></div>
+      <p class="lead">Cada jogador tem um cavalo de uma cor e <b>uma única tecla</b>. Toque para chicotear, toque na hora certa para pular os obstáculos e não gaste o fôlego cedo demais. Aposte, provoque os amigos e descubra quem é o campeão… e quem é o idiota.</p>
+      <div class="btn-row center">
+        <button class="btn big" id="menu-play">▶ Novo campeonato</button>
+        <button class="btn ghost" id="menu-quick">Corrida rápida</button>
+        <button class="btn ghost" id="menu-how">Como jogar</button>
+      </div>
+      <div class="records" id="menu-records"></div>
+    </div>
+  </section>
+
+  <!-- CONFIGURAÇÃO -->
+  <section class="screen" id="s-setup" hidden>
+    <div class="panel wide">
+      <div class="panel-head">
+        <h2>Monte o páreo</h2>
+        <p>Escolha quem corre. Cada vaga pode ser um jogador, uma CPU ou ficar vazia (mínimo 2 cavalos).</p>
+      </div>
+      <div class="slots" id="slots"></div>
+
+      <div class="opts">
+        <div class="opt">
+          <label>Modo</label>
+          <div class="seg" id="opt-mode">
+            <button data-v="bet" class="on">💰 Apostas<small>moedas, odds e prêmios</small></button>
+            <button data-v="fun">🏆 Pontos<small>sem dinheiro, só glória</small></button>
+          </div>
+        </div>
+        <div class="opt">
+          <label>Controle</label>
+          <div class="seg" id="opt-ctrl">
+            <button data-v="skill" class="on">🎮 Interativo<small>chicote e saltos com a sua tecla</small></button>
+            <button data-v="luck">🍀 Clássico<small>só torcida, pura sorte</small></button>
+          </div>
+        </div>
+        <div class="opt">
+          <label>Corridas no campeonato</label>
+          <div class="seg small" id="opt-len">
+            <button data-v="3">3</button><button data-v="5" class="on">5</button><button data-v="8">8</button><button data-v="12">12</button>
+          </div>
+        </div>
+      </div>
+      <div class="setup-err" id="setup-err" role="alert"></div>
+      <div class="btn-row">
+        <button class="btn big" id="setup-go">Começar ▶</button>
+        <button class="btn ghost" id="setup-back">Voltar</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- PRÉ-CORRIDA: sorteio + apostas -->
+  <section class="screen" id="s-pre" hidden>
+    <div class="panel wide">
+      <div class="track-card" id="track-card"></div>
+      <div class="field" id="field"></div>
+      <div id="bet-area"></div>
+      <div class="setup-err" id="bet-err" role="alert"></div>
+      <div class="btn-row">
+        <button class="btn big" id="pre-go">Para o portão ▶</button>
+        <button class="btn ghost" id="pre-quit">Encerrar campeonato</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- CORRIDA -->
+  <section class="screen race" id="s-race" hidden>
+    <div class="race-hud">
+      <div class="hud-left"><b id="hud-track"></b><span id="hud-dist"></span></div>
+      <div class="progress" id="progress"></div>
+      <div class="hud-right"><span id="hud-clock">0,00 s</span></div>
+    </div>
+    <div class="race-wrap">
+      <canvas id="race"></canvas>
+      <div class="ticker" id="ticker"></div>
+      <div class="big-msg" id="big-msg" hidden></div>
+      <button class="skip-btn" id="skip-btn" hidden>Pular ⏭</button>
+    </div>
+    <div class="pads" id="pads"></div>
+  </section>
+
+  <!-- RESULTADO DA CORRIDA -->
+  <section class="screen" id="s-result" hidden>
+    <div class="panel wide">
+      <div class="result-head" id="result-head"></div>
+      <ol class="finish" id="finish"></ol>
+      <div class="money" id="money"></div>
+      <h3 class="sub-h">Classificação do campeonato</h3>
+      <div class="standings" id="standings"></div>
+      <div class="btn-row">
+        <button class="btn big" id="res-next">Próxima corrida ▶</button>
+        <button class="btn ghost" id="res-replay">Ver de novo</button>
+        <button class="btn ghost" id="res-end">Encerrar</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- FIM DE CAMPEONATO -->
+  <section class="screen" id="s-final" hidden>
+    <div class="panel wide">
+      <div class="panel-head center">
+        <div class="hero-tag">fim de campeonato</div>
+        <h2 id="final-title"></h2>
+        <p id="final-sub"></p>
+      </div>
+      <div class="podium" id="podium"></div>
+      <div class="awards" id="awards"></div>
+      <h3 class="sub-h">Estatísticas</h3>
+      <div class="tscroll"><table class="table" id="stats-table"></table></div>
+      <div class="btn-row center">
+        <button class="btn big" id="final-again">Revanche (mesmos jogadores)</button>
+        <button class="btn ghost" id="final-menu">Menu</button>
+      </div>
+    </div>
+  </section>
+</div>
+
+<!-- COMO JOGAR -->
+<div class="modal" id="how" hidden>
+  <div class="modal-card">
+    <button class="close" data-close aria-label="Fechar">×</button>
+    <h2>Como jogar</h2>
+    <div class="how-grid">
+      <div><span class="how-ico">⌨️</span><h4>Uma tecla por jogador</h4><p>Cada jogador recebe uma tecla (A, L, V, P, Z ou M). No celular, cada cavalo ganha um botão grande na parte de baixo da tela. Dá para vários tocarem ao mesmo tempo.</p></div>
+      <div><span class="how-ico">🏇</span><h4>Chicote</h4><p>Cada toque dá um arranque curto e gasta fôlego. Martelar a tecla não ajuda: o chicote só vale num ritmo. Com o fôlego zerado o cavalo cansa e fica lento.</p></div>
+      <div><span class="how-ico">🚧</span><h4>Obstáculos</h4><p>Quando aparecer o aviso <b>PULE!</b> sobre o seu cavalo, toque. No ponto certo é salto perfeito, com arranque. Se não tocar, o cavalo pula mal e pode tropeçar.</p></div>
+      <div><span class="how-ico">🟫</span><h4>Terreno</h4><p>Lama e areia funda seguram o cavalo, as setas de turbo empurram. Cada pista tem distância, clima e armadilhas próprias.</p></div>
+      <div><span class="how-ico">🚦</span><h4>Largada</h4><p>Tocar antes do "JÁ!" queima a largada: o seu portão abre atrasado. Segure a ansiedade.</p></div>
+      <div><span class="how-ico">💰</span><h4>Apostas</h4><p>Todos começam com $ 1.000. Antes de cada corrida, aposte em qualquer cavalo pelas odds da casa. O dono do cavalo também ganha prêmio por colocação. Quem terminar com mais moedas é o campeão.</p></div>
+    </div>
+    <p class="how-foot">O cavalo de cada um tem forma e gosto por terreno que mudam a cada corrida (aparecem antes da largada). No modo Clássico ninguém aperta nada: é só torcer.</p>
+    <div class="btn-row center"><button class="btn" data-close>Entendi</button></div>
+  </div>
+</div>
+
+<div class="modal" id="confirm" hidden>
+  <div class="modal-card small">
+    <h2 id="confirm-title">Tem certeza?</h2>
+    <p id="confirm-text"></p>
+    <div class="btn-row center"><button class="btn" id="confirm-yes">Sim</button><button class="btn ghost" data-close>Cancelar</button></div>
+  </div>
+</div>
+
+<script src="game.js"></script>
+</body>
+</html>
